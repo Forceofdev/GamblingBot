@@ -17,7 +17,9 @@ const {
   User,
   ActivityType,
   Routes,
-  ApplicationCommandType
+  ApplicationCommandType,
+  ButtonBuilder,
+  ButtonStyle
 } = require("discord.js");
 require("dotenv/config");
 const fs = require('node:fs');
@@ -81,6 +83,10 @@ const commands = {
   }
 };
 
+const developer = {
+  activeDeveloperToggles: []
+}
+
 const { handleCommand } = require("./utils/handleCommand.js");
 
 const token = process.env["token_dev"];
@@ -106,12 +112,14 @@ function coinflip(message, args) {
     message.reply('You are not registered. Run !join to do so.')
     return
   }
-  let bigOrSmall
+  let max
+  let min
 
   if(args[0] == "big") {
-    bigOrSmall = 2000
+    max = 2000
+    min = 1000
   } else if(args[0] == "small") {
-    bigOrSmall = 500
+    max = 500
   } else {
     message.reply('You need to say big or small, buddy')
     return
@@ -119,7 +127,7 @@ function coinflip(message, args) {
 
   const randomValue = Math.floor(Math.random() * 2) + 1
   console.log(randomValue)
-  const randomMoneyValue = Math.floor(Math.random() * bigOrSmall) + 1
+  const randomMoneyValue = Math.floor(Math.random() * (max - min + 1)) + min
   if(randomValue == 1) {
     message.reply('You won! You got: ' + randomMoneyValue)
     user.money = user.money + randomMoneyValue
@@ -132,34 +140,70 @@ function coinflip(message, args) {
 }
 
 function coinflipUSER(message, args) {
-  console.log(message.user)
   let user = usersPlaying.get(message.user.id)
   if(!user) {
-    const newUser =  usersPlaying.set(message.user.id, { isPlaying: true, money: 1000 })
-    user = newUser
+    const newUser =  usersPlaying.set(message.user.id, { username: message.user.username, isPlaying: true, money: 1000, resets: 0 })
+    console.log({newUser})
+    user = usersPlaying.get(message.user.id)
   }
   let bigOrSmall
+  let allIn
+  let min = 0
+  let max
 
   if(args == "big") {
-    bigOrSmall = 2000
+    max = 2000
+    min = 1000
   } else if(args == "small") {
-    bigOrSmall = 500
+    if(user.developer) {
+      const btn = new ButtonBuilder()
+      .setCustomId('toggleDeveloper')
+      .setLabel('Open DevMenu')
+      .setStyle(ButtonStyle.Primary)
+      const btn2 = new ButtonBuilder()
+      .setCustomId('initDev')
+      .setLabel('initDev')
+      .setStyle(ButtonStyle.Primary)
+
+
+      const actionrow = new ActionRowBuilder()
+      .addComponents(btn, btn2)
+
+      message.reply({ content: 'Wow! you found a secret thing!', components: [actionrow] })
+      return
+    }
+    max = 500
+  } else if(args == "allin") {
+    if(user.money < 0) {
+      message.reply('you cant go all in with negative numbers bucko')
+      return
+    }
+    allIn = true
   } else {
     message.reply('You need to say big or small, buddy')
     return
   }
 
-  const randomValue = Math.floor(Math.random() * 2) + 1
+  let randomValue = Math.floor(Math.random() * 2) + 1
   console.log(randomValue)
-  const randomMoneyValue = Math.floor(Math.random() * bigOrSmall) + 1
+  const randomMoneyValue = Math.floor(Math.random() * (max - min + 1)) + min
+
+  if(allIn) {
+    randomMoneyValue = user.money
+  }
   if(randomValue == 1) {
-    message.reply('You won! You got: ' + randomMoneyValue)
-    let newval = user.money + randomMoneyValue
+    let newval = randomMoneyValue
     if(typeof user.money == "bigint") {
       const bigint = BigInt(newval)
       newval = bigint
     }
-    user.money = user.money + newval
+    const moneys = user.money + newval
+    user.money = moneys
+    if(allIn) {
+      message.reply('you won and DOUBLED your money! congrats!')
+      return
+    }
+    message.reply('You won! You got: ' + randomMoneyValue)
     return
   } else {
     let moneyval = randomMoneyValue
@@ -167,11 +211,17 @@ function coinflipUSER(message, args) {
       const biginte = BigInt(moneyval)
       moneyval = biginte
     }
-    message.reply('You lost, bozo. You lost: ' + randomMoneyValue)
     console.log(typeof user.money)
     console.log(typeof moneyval)
     console.log('original money value: ' + user.money)
     user.money = user.money - moneyval
+    if(allIn) {
+      message.reply('you lost EVERYTHING!! L')
+      return
+    }
+
+    message.reply('You lost, bozo. You lost: ' + randomMoneyValue)
+    
     console.log('new money value: ' + user.money)
     return
   }
@@ -237,7 +287,7 @@ client.once(Events.ClientReady, async (client) => {
   console.log(`Logged in as ${client.user.username}!`);
 });
 
-client.once('ready', ready => {
+client.once('ready', async ready => {
   console.log('adding sigma command...')
   ready.rest.post(Routes.applicationCommands(ready.user.id), {
       body: {
@@ -257,6 +307,11 @@ client.once('ready', ready => {
                 name: 'small',
                 value: 'small',
                 description: 'smol gambling'
+              },
+              {
+                name: 'all-in',
+                value: 'allin',
+                description: 'gamble EVERYTHING!!'
               }
               ],
               required: true,
@@ -275,12 +330,79 @@ client.once('ready', ready => {
         integration_types: [0, 1],
         contexts: [0, 1, 2]
     }
-});
+  });
+  ready.rest.post(Routes.applicationCommands(ready.user.id), {
+    body: {
+        name: "bankruptcy",
+        description: "declare yourself bankrupt",
+        type: ApplicationCommandType.ChatInput,
+        integration_types: [0, 1],
+        contexts: [0, 1, 2]
+    }
+  });
+  ready.rest.post(Routes.applicationCommands(ready.user.id), {
+    body: {
+        name: "leaderboard",
+        description: "see whos actually good at gambling",
+        type: ApplicationCommandType.ChatInput,
+        integration_types: [0, 1],
+        contexts: [0, 1, 2]
+    }
+  });
 });
 
-client.on(Events.MessageCreate, (message) => {
+client.on(Events.MessageCreate, async (message) => {
   if(message.author.bot) {
     return
+  }
+
+  try {
+    const refmessage = message.channel.messages.cache.get(message.reference.messageId)
+    if(!refmessage) {
+      return
+    }
+    console.log(refmessage)
+    developer.activeDeveloperToggles.forEach((entry => {
+      if(entry.message == refmessage) {
+        const user = usersPlaying.get(message.author.id)
+        if(user.developer) {
+          if(message.content.includes('set_money')) {
+            const splitmessage = message.content.split('|')
+            const command = splitmessage[1].split(',')
+            const userToChange = usersPlaying.get(command[0])
+            const money = Number(command[1])
+            userToChange.money = money
+            message.reply('Successful!')
+          }
+          if(message.content.includes('change_user_values')) {
+            console.log('change user values!')
+            const splitmessage = message.content.split('|')
+            console.log(splitmessage)
+            const command = splitmessage[1].split(', ')
+            console.log(command)
+            const userToChange = command[0]
+            const parsed = JSON.parse(command[1])
+            console.log({parsed})
+            usersPlaying.set(userToChange, parsed)
+            message.reply('Successful!')
+          } 
+          if(message.content.includes('add_custom_badge')) {
+            const splitmessage = message.content.split('|')
+            console.log(splitmessage)
+            const command = splitmessage[1].split(', ')
+            console.log(command)
+            const userToChange = command[0]
+            const usr = usersPlaying.get(userToChange)
+            usr.customTag = command[1]
+            message.reply('Successful!')
+          }
+          if(message.content.includes('Exit')) {
+            entry = undefined
+          }
+        }
+      }
+    }))
+  } catch(e) {
   }
   const containsNumber = /\d/.test(message.content);
   const isChannelFound = countingChannels.get(message.channel.id)
@@ -324,14 +446,97 @@ client.on(Events.MessageCreate, (message) => {
 });
 
 client.on(Events.InteractionCreate, async interaction => {
+  if(interaction.isButton()) {
+    if(interaction.customId == 'noResetMoney') {
+      interaction.reply('k! ur not a loser! congrats!')
+    }
+    if(interaction.customId == 'yesResetMoney') {
+      console.log('resetting!')
+      let user = usersPlaying.get(interaction.user.id)
+      interaction.reply('resetting ur money, loser')
+      user.money = 0
+      user.resets = user.resets + 1
+    }
+    if(interaction.customId == 'toggleDeveloper') {
+      console.log('enabling developer mode')
+      let user = usersPlaying.get(interaction.user.id)
+      if(!user.developer) {
+        return
+      }
+      const emb = new EmbedBuilder()
+      .setTitle('Gambling: DEVELOPER')
+      .setDescription('Reply to this message with the respective command you wish to execute:\n**set_money**: Set your money to the value you wish\n**change_user_values**: Change the map values for a user [MUST BE IN JSON FORMAT]\n**add_custom_badge**: [UNFINISHED] Give a user a custom badge')
+      
+      developer.activeDeveloperToggles.push({
+        user: interaction.user,
+        message: interaction.message
+      })
+
+      interaction.reply({ embeds: [emb] })
+      
+      const devtggles = developer.activeDeveloperToggles[0].message
+
+      console.log({devtggles})
+    }
+    if(interaction.customId == 'initDev') {
+      console.log('enabling developer mode')
+      let user = usersPlaying.get(interaction.user.id)
+      if(!user.developer) {
+        return
+      }
+      
+      developer.activeDeveloperToggles.push({
+        user: interaction.user,
+        message: interaction.message
+      })
+    }
+  }
 	if (!interaction.isChatInputCommand()) return;
 	const command = interaction.client.commands.get(interaction.commandName);
-  console.log(interaction.client.commands)
 
 	if (!command) {
     if(interaction.commandName == 'gamble') {
       coinflipUSER(interaction, interaction.options.getString('size'))
       console.log(interaction.options.getString('size'))
+    }
+    
+    if(interaction.commandName == 'leaderboard') {
+      const emb = new EmbedBuilder()
+      .setTitle('Gambling Leaderboard')
+
+      const gamblers = Array.from(usersPlaying.entries());
+      gamblers.sort((a, b) => b[1].money - a[1].money);
+      let i = 0
+      console.log(gamblers)
+      let stringifiedGamblers = []
+
+      gamblers.forEach((gambler) => {
+        console.log('running!')
+        if(i == 10) return
+        console.log({gambler})
+        i++
+        if(gambler[1].customTag) {
+          stringifiedGamblers.push(`${i}. **${gambler[1].username} [${gambler[1].customTag}]** : ${gambler[1].money}`)
+          return
+        }
+        if(gambler[1].meganerd) {
+          stringifiedGamblers.push(`${i}. **${gambler[1].username} [MEGA LOSER]** : ${gambler[1].money}`)
+          return
+        }
+        if(gambler[1].resets > 0) {
+          stringifiedGamblers.push(`${i}. **${gambler[1].username} [LOSER]** : ${gambler[1].money}`)
+          return
+        }
+        if(gambler[1].developer) {
+          stringifiedGamblers.push(`${i}. **${gambler[1].username} [DEV]** : ${gambler[1].money}`)
+          return
+        }
+        stringifiedGamblers.push(`${i}. **${gambler[1].username}** : ${gambler[1].money}`)
+      })
+
+      console.log(stringifiedGamblers.join('\n'))
+      emb.setDescription(stringifiedGamblers.join('\n'))
+      interaction.reply({embeds: [emb]})
     }
     if(interaction.commandName == "beep") {
       interaction.reply('holy based')
@@ -339,17 +544,53 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName == 'balance') {
       let user = usersPlaying.get(interaction.user.id)
       if(!user) {
-        const newuser = usersPlaying.set(interaction.user.id, { isPlaying: true, money: 100 })
-        user = newuser
+        usersPlaying.set(interaction.user.id, { username: interaction.user.username, isPlaying: true, money: 1000, resets: 0 })
+        user = usersPlaying.get(interaction.user.id)
       }
       if(user.money < 1) {
+        if(user.resets > 0) {
+          interaction.reply('lmao! ur in debt, even after going bankrupt! you have: ' + user.money)
+          return
+        }
         interaction.reply('lmao! brokie! u have: ' + user.money)
       } else if(user.money > 100) {
+        if(user.resets > 0) {
+          interaction.reply('congrats, ur rich, loser. you have: ' + user.money)
+          return
+        }
         interaction.reply('bro, ur rich!!! u have: ' + user.money)
       } else {
+        if(user.resets > 0) {
+          interaction.reply('you have: ' + user.money + ', loser.')
+          return
+        }
         interaction.reply('you have: ' + user.money)
       }
       
+    }
+    if(interaction.commandName == 'bankruptcy') {
+      console.log('running bankruptcy!')
+      let user = usersPlaying.get(interaction.user.id)
+      if(!user) {
+        usersPlaying.set(interaction.user.id, { username: interaction.user.username, isPlaying: true, money: 1000 })
+        user = usersPlaying.get(interaction.user.id)
+      }
+      const yesButton = new ButtonBuilder()
+      .setCustomId('yesResetMoney')
+      .setStyle(ButtonStyle.Danger)
+      .setLabel('Yes!')
+      const noButton = new ButtonBuilder()
+      .setCustomId('noResetMoney')
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('Nah.')
+      const actionRow = new ActionRowBuilder()
+      .addComponents(yesButton, noButton)
+
+      if(user.money < -100000) {
+        interaction.reply({ content: 'are you sure? this resets your debt, but gives you the loser tag', components: [actionRow] })
+      } else {
+        interaction.reply('ur not poor enough')
+      }
     }
 		console.error(`No command matching ${interaction.commandName} was found.`);
 		return;

@@ -1,53 +1,45 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
-
-require("dotenv/config");
-const token = process.env["token_dev"];
-
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-client.commands = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
-
-for (const folder of commandFolders) {
-	const commandsPath = path.join(foldersPath, folder);
-	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-	for (const file of commandFiles) {
-		const filePath = path.join(commandsPath, file);
-		const command = require(filePath);
-		if ('data' in command && 'execute' in command) {
-			client.commands.set(command.data.name, command);
-		} else {
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-		}
+function coinflipUSER(message, args) {
+	let user = usersPlaying.get(message.user.id)
+	if(!user) {
+	  const newUser =  usersPlaying.set(message.user.id, { isPlaying: true, money: 1000 })
+	  user = newUser
 	}
-}
-
-client.once(Events.ClientReady, readyClient => {
-	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-});
-
-client.on(Events.InteractionCreate, async interaction => {
-	if (!interaction.isChatInputCommand()) return;
-	const command = interaction.client.commands.get(interaction.commandName);
-
-	if (!command) {
-		console.error(`No command matching ${interaction.commandName} was found.`);
-		return;
+	let bigOrSmall
+  
+	if(args == "big") {
+	  bigOrSmall = 2000
+	} else if(args == "small") {
+	  bigOrSmall = 500
+	} else {
+	  message.reply('You need to say big or small, buddy')
+	  return
 	}
-
-	try {
-		await command.execute(interaction);
-	} catch (error) {
-		console.error(error);
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-		}
+  
+	const randomValue = Math.floor(Math.random() * 2) + 1
+	console.log(randomValue)
+	const randomMoneyValue = Math.floor(Math.random() * bigOrSmall) + 1
+	console.log(randomMoneyValue)
+	if(randomValue == 1) {
+	  message.reply('You won! You got: ' + randomMoneyValue)
+	  let newval = user.money + randomMoneyValue
+	  if(typeof user.money == "bigint") {
+		const bigint = BigInt(newval)
+		newval = bigint
+	  }
+	  user.money = user.money + newval
+	  return
+	} else {
+	  let moneyval = randomMoneyValue
+	  if(typeof user.money == "bigint") {
+		const biginte = BigInt(moneyval)
+		moneyval = biginte
+	  }
+	  message.reply('You lost, bozo. You lost: ' + randomMoneyValue)
+	  console.log(typeof user.money)
+	  console.log(typeof moneyval)
+	  console.log('original money value: ' + user.money)
+	  user.money = user.money - moneyval
+	  console.log('new money value: ' + user.money)
+	  return
 	}
-});
-
-client.login(token);
+  }
