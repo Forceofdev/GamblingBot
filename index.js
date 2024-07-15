@@ -24,8 +24,9 @@ const {
 require("dotenv/config");
 const fs = require("node:fs");
 const path = require("node:path");
+const {writeUserData, getUserData} = require('./userData.js')
 
-const countingChannels = new Map();
+const countingChannels = new Map(getUserData());
 
 const client = new Client({
   intents: [
@@ -97,7 +98,6 @@ const token = process.env["token_dev"];
 
 function printCommands(message) {
   let cmds = "";
-  console.log(Object.keys(commands));
   Object.keys(commands).forEach((entry) => {
     const object = commands[entry];
     cmds = cmds + `${object.name}\n`;
@@ -360,6 +360,15 @@ client.once("ready", async (ready) => {
   });
   ready.rest.post(Routes.applicationCommands(ready.user.id), {
     body: {
+      name: "riddle",
+      description: "get an unfunny riddle provided by hetris",
+      type: ApplicationCommandType.ChatInput,
+      integration_types: [0, 1],
+      contexts: [0, 1, 2],
+    },
+  });
+  ready.rest.post(Routes.applicationCommands(ready.user.id), {
+    body: {
       name: "bankruptcy",
       description: "declare yourself bankrupt",
       type: ApplicationCommandType.ChatInput,
@@ -415,7 +424,6 @@ client.on(Events.MessageCreate, async (message) => {
     if (!refmessage) {
       return;
     }
-    console.log(refmessage);
     developer.activeDeveloperToggles.forEach((entry) => {
       if (entry.message == refmessage) {
         const user = usersPlaying.get(message.author.id);
@@ -427,6 +435,10 @@ client.on(Events.MessageCreate, async (message) => {
             const money = Number(command[1]);
             userToChange.money = money;
             message.reply("Successful!");
+          }
+          if (message.content.includes("save")) {
+            writeUserData(usersPlaying)
+              message.reply('Successful!')
           }
           if (message.content.includes("change_user_values")) {
             console.log("change user values!");
@@ -526,7 +538,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const emb = new EmbedBuilder()
         .setTitle("Gambling: DEVELOPER")
         .setDescription(
-          "Reply to this message with the respective command you wish to execute:\n**set_money**: Set your money to the value you wish\n**change_user_values**: Change the map values for a user [MUST BE IN JSON FORMAT]\n**add_custom_badge**: [UNFINISHED] Give a user a custom badge"
+          "Reply to this message with the respective command you wish to execute:\n**set_money**: Set your money to the value you wish\n**change_user_values**: Change the map values for a user [MUST BE IN JSON FORMAT]\n**add_custom_badge**: [UNFINISHED] Give a user a custom badge\n**save**: Save all user data to userinfo.txt"
         );
 
       developer.activeDeveloperToggles.push({
@@ -566,6 +578,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.commandName == "leaderboard") {
       const emb = new EmbedBuilder().setTitle("Gambling Leaderboard");
+      console.log(usersPlaying)
 
       const gamblers = Array.from(usersPlaying.entries());
       gamblers.sort((a, b) => b[1].money - a[1].money);
@@ -615,9 +628,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       interaction.reply("holy based");
     }
     
-	   if(interaction.commandName == "riddle") {
+	  if(interaction.commandName == "riddle") {
       interaction.reply('What starts with a T, ends with a T, and has T in it?\n\n||A Teapot||')
     }	
+
     if (interaction.commandName == "balance") {
       let user = usersPlaying.get(interaction.user.id);
       if (!user) {
