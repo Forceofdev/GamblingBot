@@ -614,6 +614,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "beep") {
       interaction.reply("holy based");
     }
+    
+	   if(interaction.commandName == "riddle") {
+      interaction.reply('What starts with a T, ends with a T, and has T in it?\n\n||A Teapot||')
+    }	
     if (interaction.commandName == "balance") {
       let user = usersPlaying.get(interaction.user.id);
       if (!user) {
