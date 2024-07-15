@@ -148,6 +148,7 @@ function coinflip(message, args) {
 
 function coinflipUSER(message, args) {
   let user = usersPlaying.get(message.user.id);
+  message.deferReply({ ephemeral: true })
   if (!user) {
     const newUser = usersPlaying.set(message.user.id, {
       username: message.user.username,
@@ -179,7 +180,7 @@ function coinflipUSER(message, args) {
 
       const actionrow = new ActionRowBuilder().addComponents(btn, btn2);
 
-      message.reply({
+      message.editReply({
         content: "Wow! you found a secret thing!",
         components: [actionrow],
       });
@@ -188,12 +189,12 @@ function coinflipUSER(message, args) {
     max = 500;
   } else if (args == "allin") {
     if (user.money < 0) {
-      message.reply("you cant go all in with negative numbers bucko");
+      message.editReply("you cant go all in with negative numbers bucko");
       return;
     }
     allIn = true;
   } else {
-    message.reply("You need to say big or small, buddy");
+    message.editReply("You need to say big or small, buddy");
     return;
   }
 
@@ -224,10 +225,10 @@ function coinflipUSER(message, args) {
     const moneys = user.money + newval;
     user.money = moneys;
     if (allIn) {
-      message.reply("you won and DOUBLED your money! congrats!");
+      message.editReply("you won and DOUBLED your money! congrats!");
       return;
     }
-    message.reply("You won! You got: " + randomMoneyValue);
+    message.editReply("You won! You got: " + randomMoneyValue);
     return;
   } else {
     let moneyval = randomMoneyValue;
@@ -240,11 +241,11 @@ function coinflipUSER(message, args) {
     console.log("original money value: " + user.money);
     user.money = user.money - moneyval;
     if (allIn) {
-      message.reply("you lost EVERYTHING!! L");
+      message.editReply("you lost EVERYTHING!! L");
       return;
     }
 
-    message.reply("You lost, bozo. You lost: " + randomMoneyValue);
+    message.editReply("You lost, bozo. You lost: " + randomMoneyValue);
 
     console.log("new money value: " + user.money);
     return;
@@ -580,6 +581,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "leaderboard") {
       const emb = new EmbedBuilder().setTitle("Gambling Leaderboard");
       console.log(usersPlaying);
+      interaction.deferReply({ ephemeral: true })
 
       const gamblers = Array.from(usersPlaying.entries());
       gamblers.sort((a, b) => b[1].money - a[1].money);
@@ -623,7 +625,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       console.log(stringifiedGamblers.join("\n"));
       emb.setDescription(stringifiedGamblers.join("\n"));
-      interaction.reply({ embeds: [emb] });
+      interaction.editReply({ embeds: [emb] });
     }
     if (interaction.commandName == "beep") {
       interaction.reply("holy based");
@@ -635,7 +637,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .then((json) => getRiddle(json.riddle, json.answer));
 
       function getRiddle(riddle, answer) {
-        interaction.reply(riddle + "\n\n||" + answer + "||");
+        interaction.deferReply({ ephemeral: true })
+        interaction.editReply(riddle + "\n\n||" + answer + "||");
       }
     }
     if (interaction.commandName == "balance") {
