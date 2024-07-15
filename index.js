@@ -148,7 +148,6 @@ function coinflip(message, args) {
 
 function coinflipUSER(message, args) {
   let user = usersPlaying.get(message.user.id);
-  message.deferReply({ ephemeral: true })
   if (!user) {
     const newUser = usersPlaying.set(message.user.id, {
       username: message.user.username,
@@ -189,6 +188,7 @@ function coinflipUSER(message, args) {
     max = 500;
   } else if (args == "allin") {
     if (user.money < 0) {
+      message.deferReply()
       message.editReply("you cant go all in with negative numbers bucko");
       return;
     }
@@ -572,6 +572,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (!command) {
     if (interaction.commandName == "gamble") {
+      await interaction.deferReply()
       try {
         coinflipUSER(interaction, interaction.options.getString("size"));
       } catch (e) {}
@@ -581,7 +582,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "leaderboard") {
       const emb = new EmbedBuilder().setTitle("Gambling Leaderboard");
       console.log(usersPlaying);
-      interaction.deferReply({ ephemeral: true })
+      await interaction.deferReply()
 
       const gamblers = Array.from(usersPlaying.entries());
       gamblers.sort((a, b) => b[1].money - a[1].money);
