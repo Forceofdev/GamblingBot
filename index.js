@@ -26,7 +26,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {writeUserData, getUserData} = require('./userData.js')
 
-const countingChannels = new Map(getUserData());
+const userData = getUserData()
+console.log({userData})
+
+const countingChannels = new Map();
 
 const client = new Client({
   intents: [
@@ -63,7 +66,7 @@ for (const folder of commandFolders) {
   }
 }
 
-const usersPlaying = new Map();
+const usersPlaying = new Map(userData);
 
 const commands = {
   commands: {

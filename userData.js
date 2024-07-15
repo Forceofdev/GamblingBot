@@ -8,7 +8,6 @@ function writeUserData(map) {
 function getUserData() {
     const rawData = readFileSync('./userinfo.txt', { encoding: 'utf-8' })
     const data = JSON.parse(rawData)
-    console.log(data)
 
     return data
 }
