@@ -24,10 +24,10 @@ const {
 require("dotenv/config");
 const fs = require("node:fs");
 const path = require("node:path");
-const {writeUserData, getUserData} = require('./userData.js')
+const { writeUserData, getUserData } = require("./userData.js");
 
-const userData = getUserData()
-console.log({userData})
+const userData = getUserData();
+console.log({ userData });
 
 const countingChannels = new Map();
 
@@ -199,7 +199,7 @@ function coinflipUSER(message, args) {
 
   let randomValue = Math.floor(Math.random() * 2) + 1;
   console.log(randomValue);
-  let randomMoneyValue = Math.floor(Math.random() * (max - min + 1)) + min
+  let randomMoneyValue = Math.floor(Math.random() * (max - min + 1)) + min;
   if (user.developer && user.developerOverrides) {
     if (user.developerOverrides.alwaysWin) {
       randomValue = 1;
@@ -391,8 +391,8 @@ client.once("ready", async (ready) => {
 });
 
 const SSUrequests = {
-    activeRequests: []
-}
+  activeRequests: [],
+};
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) {
@@ -440,8 +440,8 @@ client.on(Events.MessageCreate, async (message) => {
             message.reply("Successful!");
           }
           if (message.content.includes("save")) {
-            writeUserData(usersPlaying)
-              message.reply('Successful!')
+            writeUserData(usersPlaying);
+            message.reply("Successful!");
           }
           if (message.content.includes("change_user_values")) {
             console.log("change user values!");
@@ -532,12 +532,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       let user = usersPlaying.get(interaction.user.id);
       try {
         if (!user.developer) {
-            return;
-          }
-      } catch(e) {
+          return;
+        }
+      } catch (e) {}
 
-      }
-  
       const emb = new EmbedBuilder()
         .setTitle("Gambling: DEVELOPER")
         .setDescription(
@@ -581,7 +579,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.commandName == "leaderboard") {
       const emb = new EmbedBuilder().setTitle("Gambling Leaderboard");
-      console.log(usersPlaying)
+      console.log(usersPlaying);
 
       const gamblers = Array.from(usersPlaying.entries());
       gamblers.sort((a, b) => b[1].money - a[1].money);
@@ -630,21 +628,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName == "beep") {
       interaction.reply("holy based");
     }
-    
-	   if(interaction.commandName == "riddle") {
 
+    if (interaction.commandName == "riddle") {
+      fetch("https://riddles-api.vercel.app/random")
+        .then((response) => response.json())
+        .then((json) => getRiddle(json.riddle, json.answer));
 
- fetch("https://riddles-api.vercel.app/random")
-  .then((response) => response.json())
-  .then((json) => getRiddle(json.riddle,json.answer));
-  
-function getRiddle(riddle,answer){
-interaction.reply(riddle+'/n/n||'+answer+'||')
-}
-
-  
-  
-      }	
+      function getRiddle(riddle, answer) {
+        interaction.reply(riddle + "\n\n||" + answer + "||");
+      }
+    }
     if (interaction.commandName == "balance") {
       let user = usersPlaying.get(interaction.user.id);
       if (!user) {

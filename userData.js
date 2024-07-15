@@ -1,7 +1,8 @@
 require('discord.js')
 const { fsync, readFileSync, readFile, writeFile, writeFileSync } = require("fs")
 function writeUserData(map) {
-    const stringData = JSON.stringify({ userData: map })
+    console.log(map)
+    const stringData = JSON.stringify(Array.from(map.entries()))
     writeFileSync('./userinfo.txt', stringData)
 }
 
