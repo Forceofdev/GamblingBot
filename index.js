@@ -616,8 +616,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
     
 	   if(interaction.commandName == "riddle") {
-      interaction.reply('What starts with a T, ends with a T, and has T in it?\n\n||A Teapot||')
-    }	
+
+
+ fetch("https://riddles-api.vercel.app/random")
+  .then((response) => response.json())
+  .then((json) => getRiddle(json.riddle,json.answer));
+  
+function getRiddle(riddle,answer){
+interaction.reply(riddle+'/n/n||'+answer+'||')
+}
+
+  
+  
+      }	
     if (interaction.commandName == "balance") {
       let user = usersPlaying.get(interaction.user.id);
       if (!user) {
