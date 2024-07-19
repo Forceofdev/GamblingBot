@@ -146,7 +146,7 @@ function coinflip(message, args) {
   }
 }
 
-function coinflipUSER(message, args) {
+async function coinflipUSER(message, args) {
   let user = usersPlaying.get(message.user.id);
   if (!user) {
     const newUser = usersPlaying.set(message.user.id, {
@@ -188,7 +188,6 @@ function coinflipUSER(message, args) {
     max = 500;
   } else if (args == "allin") {
     if (user.money < 0) {
-      message.deferReply()
       message.editReply("you cant go all in with negative numbers bucko");
       return;
     }
@@ -571,6 +570,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   const command = interaction.client.commands.get(interaction.commandName);
 
   if (!command) {
+    if(!interaction) return
     if (interaction.commandName == "gamble") {
       await interaction.deferReply()
       try {
@@ -637,8 +637,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .then((response) => response.json())
         .then((json) => getRiddle(json.riddle, json.answer));
 
-      function getRiddle(riddle, answer) {
-        interaction.deferReply({ ephemeral: true })
+      async function getRiddle(riddle, answer) {
+        await interaction.deferReply()
         interaction.editReply(riddle + "\n\n||" + answer + "||");
       }
     }
