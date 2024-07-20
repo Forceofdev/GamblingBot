@@ -572,7 +572,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!command) {
     if(!interaction) return
     if (interaction.commandName == "gamble") {
-      await interaction.deferReply()
+      try {
+        await interaction.deferReply()
+      } catch(e) {
+        interaction.reply('interaction failed')
+      }
       try {
         coinflipUSER(interaction, interaction.options.getString("size"));
       } catch (e) {}
